@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PyQt5.QtWidgets import (QApplication, QMessageBox)
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -217,6 +217,42 @@ class Ui_MainWindow(object):
         self.Button_next.setText(_translate("MainWindow", "  》"))
         self.Button_priview.setText(_translate("MainWindow", "《  "))
         self.Button_reload.setText(_translate("MainWindow", "⟳"))
+    def setLineText(self, text):
+        if self.lineEdit.text() == "????":
+            self.lineEdit.setText(text)
+        else:
+            self.lineEdit.setText(self.lineEdit.text() + text)
+    def reloadData(self):
+        self.lineEdit.setText("????")
+    def enter(self):
+        check = QMessageBox()
+        check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+        reply =check.information(None, '上傳確認', '您好%s\n確定上傳嗎？' % self.lineEdit.text(), QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            ##uplode data
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('成功')
+            msgBox.setText('上傳成功')
+            msgBox.setStandardButtons(QMessageBox.Ok)
+            msgBox.button(QMessageBox.Ok).hide()
+            msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+            msgBox.button(QMessageBox.Ok).animateClick(1000)
+            msgBox.exec_()  
+            self.lineEdit.setText("????")
+    def actionConnect(self):
+        self.Button_1.clicked.connect(lambda: self.setLineText("1"))
+        self.Button_2.clicked.connect(lambda: self.setLineText("2"))
+        self.Button_3.clicked.connect(lambda: self.setLineText("3"))
+        self.Button_4.clicked.connect(lambda: self.setLineText("4"))
+        self.Button_5.clicked.connect(lambda: self.setLineText("5"))
+        self.Button_6.clicked.connect(lambda: self.setLineText("6"))
+        self.Button_7.clicked.connect(lambda: self.setLineText("7"))
+        self.Button_8.clicked.connect(lambda: self.setLineText("8"))
+        self.Button_9.clicked.connect(lambda: self.setLineText("9"))
+        self.Button_0.clicked.connect(lambda: self.setLineText("0"))
+        self.Button_reload.clicked.connect(lambda: self.reloadData())
+        self.Button_enter.clicked.connect(lambda: self.enter())
+        self.Button_del.clicked.connect(lambda: self.lineEdit.setText(self.lineEdit.text()[:-1]if len(self.lineEdit.text()) > 1 and self.lineEdit.text()!="????" else "????"))
 
 import img_rc
 
@@ -226,7 +262,8 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
-    #MainWindow.showFullScreen()
-    MainWindow.show()
+    ui.actionConnect()
+    MainWindow.showFullScreen()
+    #MainWindow.show()
     sys.exit(app.exec_())
 
