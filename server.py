@@ -4,13 +4,13 @@ import time
 import numpy as nps
 import torch
 import base64
-import cupy as np
-from   import read_pkl_model, start_up_init, encode_image
+# import cupy as np
+from helper import read_pkl_model, start_up_init, encode_image
 import face_embedding
 import face_detector
 # In[]:
 is_real_time=False
-VIDEO_PATH='B1_Cam1_2.mp4'
+VIDEO_PATH='b1_cam1_2.avi'
 SAVE_VIDEO=True
 PROBA_THRESHOLD=0.5
 VIDEO_OUT_PATH='output_2.avi'
@@ -23,12 +23,12 @@ NPY_PATH='face_vector.npy'
 
 # In[]:
 import mysql.connector
-import password as pw
+# import password as pw
 maxdb = mysql.connector.connect(
     host = "127.0.0.1",
     user = "root",
-    password = pw.password,
-    database = "world",
+    password = "as900509",
+    database = "topic",
     )
 cursor=maxdb.cursor()
 
@@ -52,14 +52,13 @@ def image2string(image):
     return img_str
 def string2image(img_str):
     img_str = base64.b64decode(img_str)
-    img_arr = np.frombuffer(img_str, np.uint8)
+    img_arr = nps.frombuffer(img_str, nps.uint8)
     img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
     return img
 def sql_find_last_img_id():
     cursor.execute("SELECT face_id FROM face order by 'face_id' DESC LIMIT 0 , 1;")
     result = cursor.fetchall()
     return result
-
 def sql_find_last_img_id():
     cursor.execute("SELECT origin_img_id FROM origin_img order by 'origin_img_id' DESC LIMIT 0 , 1;")
     result = cursor.fetchall()
@@ -73,14 +72,14 @@ def sql_write_origin_img(frame):
     time_tmp = time.localtime(time.time())
     last_num = str(int(sql_find_last_img_id())+1)
     time_now=str(time_tmp.tm_year)+"-"+str(time_tmp.tm_mon)+"-"+str(time_tmp.tm_mday)+" "+str(time_tmp.tm_hour)+":"+str(time_tmp.tm_min)+":"+str(time_tmp.tm_sec)
-    cursor.execute("insert into 'origin_img'('origin_img_id','img','img_time') VALUES (%s,%s,%s);"%(last_num,frame_str,time_now))
+    cursor.execute("insert into origin_img(origin_img_id,img,img_time) VALUES ('%s','%s','%s');"%(last_num,frame_str,time_now))
 def sqlwrite_face_img(img,origin_img_id):
     last_num=sql_find_last_img_id()
     img_str=image2string(img)
-    cursor.execute("insert into 'face'('face_id','origin_img_id','face_img') VALUES (%s,%s,%s);"%(last_num,origin_img_id,img_str))
+    cursor.execute("insert into face(face_id,origin_img_id,face_img) VALUES ('%s','%s','%s');"%(last_num,origin_img_id,img_str))
     return last_num
 def sql_write_NTR(group_id,face_id): # NTR: need to recognize
-    cursor.execute("insert into 'NTR'('NTR_id','face_id') VALUES (group_id,face_id);")
+    cursor.execute("insert into NTR(NTR_id,face_id) VALUES ('%s','%s');"%(group_id,face_id))
 def sql_write_face(vector,img,group_id,origin_img_id):
     for i,g_id in enumerate(group_id):
         o_id=origin_img_id[i]
