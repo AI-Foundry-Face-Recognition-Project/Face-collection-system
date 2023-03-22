@@ -27,7 +27,7 @@ import mysql.connector
 maxdb = mysql.connector.connect(
     host = "127.0.0.1",
     user = "root",
-    password = "as900509",
+    password = "Iloveyou",
     database = "topic",
     )
 cursor=maxdb.cursor()
