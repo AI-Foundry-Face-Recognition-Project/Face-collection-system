@@ -417,7 +417,7 @@ background-color: rgb(55, 176, 219);</string>
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap resource="img.qrc">:/background/backcoler.png</pixmap>
+     <pixmap>:/background/backcoler.png</pixmap>
     </property>
    </widget>
    <widget class="QPushButton" name="Button_reload">
@@ -443,6 +443,19 @@ background-color: rgb(55, 176, 219);</string>
      <string>⟳</string>
     </property>
    </widget>
+   <widget class="QLabel" name="ImgDisp">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>50</y>
+      <width>100</width>
+      <height>110</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
+    </property>
+   </widget>
    <zorder>label_2</zorder>
    <zorder>label</zorder>
    <zorder>lineEdit</zorder>
@@ -461,6 +474,7 @@ background-color: rgb(55, 176, 219);</string>
    <zorder>Button_next</zorder>
    <zorder>Button_priview</zorder>
    <zorder>Button_reload</zorder>
+   <zorder>ImgDisp</zorder>
   </widget>
  </widget>
  <resources>
