@@ -59,20 +59,24 @@ def sql_find_last_img_id():
     cursor.execute("SELECT face_id FROM face order by 'face_id' DESC LIMIT 0 , 1;")
     result = cursor.fetchall()
     return result
+
 def sql_find_last_img_id():
     cursor.execute("SELECT origin_img_id FROM origin_img order by 'origin_img_id' DESC LIMIT 0 , 1;")
     result = cursor.fetchall()
     return result
+
 def sql_find_last_group_id():
     cursor.execute("SELECT NTR_id FROM NTR order by 'NTR_id' DESC LIMIT 0 , 1;")
     result = cursor.fetchall()
     return result
+
 def sql_write_origin_img(frame):
     frame_str=image2string(frame)
     time_tmp = time.localtime(time.time())
     last_num = str(int(sql_find_last_img_id())+1)
     time_now=str(time_tmp.tm_year)+"-"+str(time_tmp.tm_mon)+"-"+str(time_tmp.tm_mday)+" "+str(time_tmp.tm_hour)+":"+str(time_tmp.tm_min)+":"+str(time_tmp.tm_sec)
     cursor.execute("insert into origin_img(origin_img_id,img,img_time) VALUES ('%s','%s','%s');"%(last_num,frame_str,time_now))
+
 def sqlwrite_face_img(img,origin_img_id):
     last_num=sql_find_last_img_id()
     img_str=image2string(img)
