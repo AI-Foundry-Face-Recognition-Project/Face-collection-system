@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-retranslateUi
 
 # Form implementation generated from reading ui file 'untitled.ui'
 #
@@ -28,6 +28,20 @@
 #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (QApplication, QMessageBox)
+from PyQt5.QtGui import *
+import mysql.connector
+import cv2
+import base64
+import numpy as np
+# import password as pw
+maxdb = mysql.connector.connect(
+    host = "127.0.0.1",
+    user = "root",
+    password = "!A1078d2906e2a",
+    database = "proj",
+    )
+cursor=maxdb.cursor()
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -45,6 +59,11 @@ class Ui_MainWindow(object):
         self.label.setObjectName("label")
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(240, 100, 201, 40))
+        self.ImgDisp = QtWidgets.QLabel(self.centralwidget)
+        self.ImgDisp.setGeometry(QtCore.QRect(60, 50, 100, 110))
+        self.ImgDisp.setObjectName("ImgDisp")
+        self.ImgDisp.show()
+        self.ImgDisp.raise_()
         font = QtGui.QFont()
         font.setPointSize(25)
         font.setBold(True)
@@ -213,11 +232,28 @@ class Ui_MainWindow(object):
         self.Button_next.raise_()
         self.Button_priview.raise_()
         self.Button_reload.raise_()
+        self.ImgDisp.raise_()
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
+        
+    
+    def sql_sync(self):
+        pass
+    def image2string(self,image):
+        img_str = cv2.imencode('.jpg', image)[1].tostring()
+        img_str = base64.b64encode(img_str).decode('utf-8')
+        return img_str
+    def string2image(self,img_str):
+        img_str = base64.b64decode(img_str)
+        img_arr = np.frombuffer(img_str, np.uint8)
+        img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
+        return img
+    def sql_find_face_img(self):
+        cursor.execute("SELECT face_img FROM face order by 'face_id' DESC LIMIT 0 , 1;")
+        result = cursor.fetchall()
+        return self.string2image(result)
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -237,13 +273,37 @@ class Ui_MainWindow(object):
         self.Button_next.setText(_translate("MainWindow", "  》"))
         self.Button_priview.setText(_translate("MainWindow", "《  "))
         self.Button_reload.setText(_translate("MainWindow", "⟳"))
+        self.ImgDisp.setText(_translate("MainWindow", "."))
     def setLineText(self, text):
         if self.lineEdit.text() == "????":
             self.lineEdit.setText(text)
         else:
             self.lineEdit.setText(self.lineEdit.text() + text)
+    #def cvImgtoQtImg(self,cvImg): #定义opencv图像转PyQt图像的函数
+    #    QtImgBuf = cv2.cvtColor(cvImg,  cv2.COLOR_BGR2BGRA)
+    #    QtImg = QtGui.QImage(QtImgBuf.data, QtImgBuf.shape[1], QtImgBuf.shape[0], QtGui.QImage.Format_RGB32)
+    #    return QtImg
+    def cvimg_to_qtimg(self,cvimg):
+        height, width, depth = cvimg.shape
+        cvimg = cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB)
+        cvimg = QImage(cvimg.data, width, height, width * depth, QImage.Format_RGB888)
+        return cvimg
+    def qtImshow(self,img):
+        x,y,z=img.shape
+        x_new,y_new=100,110
+        if x / y >= x_new / y_new:
+            img_new = cv2.resize(img, (x_new, int(y * x_new / x)))
+        else:
+            img_new = cv2.resize(img, (int(x * y_new / y), y_new))
+        QtImg = self.cvimg_to_qtimg(img_new)
+        self.ImgDisp.setPixmap(QtGui.QPixmap.fromImage(QtImg))
+        size = QtImg.size()
+        self.ImgDisp.resize(size)
     def reloadData(self):
         self.lineEdit.setText("????")
+        image=self.sql_find_face_img()
+        self.qtImshow(self,image)
+        
     def enter(self):
         check = QMessageBox()
         check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
@@ -283,6 +343,8 @@ if __name__ == "__main__":
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
     ui.actionConnect()
+    img=cv2.imread("unknown.jpg")
+    ui.qtImshow(img)
     #MainWindow.showFullScreen()
     MainWindow.show()
     sys.exit(app.exec_())
