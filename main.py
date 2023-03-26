@@ -234,10 +234,14 @@ class Ui_MainWindow(object):
         self.Button_reload.raise_()
         self.ImgDisp.raise_()
         MainWindow.setCentralWidget(self.centralwidget)
-
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        
+        self.image=[]
+        self.pic_label=0
+    def setupImg(self):
+        self.image=self.sql_find_face_img()
+        self.pic_label=0
+        self.pic_maxlabel=0
     
     def sql_sync(self):
         pass
@@ -246,14 +250,20 @@ class Ui_MainWindow(object):
         img_str = base64.b64encode(img_str).decode('utf-8')
         return img_str
     def string2image(self,img_str):
-        img_str = base64.b64decode(img_str)
+        img_str = base64.b64decode(img_str[0])
         img_arr = np.frombuffer(img_str, np.uint8)
         img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
         return img
-    def sql_find_face_img(self):
-        cursor.execute("SELECT face_img FROM face order by 'face_id' DESC LIMIT 0 , 1;")
+    def sql_find_last_img_id():
+        cursor.execute("SELECT origin_img_id FROM origin_img order by 'origin_img_id' DESC LIMIT 0 , 1;")
         result = cursor.fetchall()
-        return self.string2image(result)
+        return result#check
+    def sql_find_face_img(self):
+        cursor.execute("SELECT face_img FROM face;")
+        result=[self.string2image(element) for element in cursor.fetchall() ]
+        self.pic_maxlabel=len(result)-1
+        print("max: "+str(self.pic_maxlabel))
+        return result
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -301,14 +311,16 @@ class Ui_MainWindow(object):
         self.ImgDisp.resize(size)
     def reloadData(self):
         self.lineEdit.setText("????")
-        image=self.sql_find_face_img()
-        self.qtImshow(self,image)
-        
+        self.image=self.sql_find_face_img()
+        self.pic_label=0
+        self.qtImshow(self,self.image[self.pic_label])
     def enter(self):
         check = QMessageBox()
         check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
         reply =check.information(None, '上傳確認', '您好%s\n確定上傳嗎？' % self.lineEdit.text(), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
+            ##uplode data
+
             ##uplode data
             msgBox = QMessageBox()
             msgBox.setWindowTitle('成功')
@@ -319,6 +331,20 @@ class Ui_MainWindow(object):
             msgBox.button(QMessageBox.Ok).animateClick(1000)
             msgBox.exec_()  
             self.lineEdit.setText("????")
+
+    def next_img(self):
+        print(str(self.pic_label)+"to "+str(self.pic_label+1))
+        if self.pic_label+1 <=self.pic_maxlabel:
+            self.pic_label+=1
+            self.qtImshow(self,self.image[self.pic_label])
+        pass
+    def priview_img(self):
+        print(str(self.pic_label)+"to "+str(self.pic_label-1))
+        if self.pic_label>0:
+            self.pic_label+=1
+            self.qtImshow(self,self.image[self.pic_label])
+        else:
+            pass
     def actionConnect(self):
         self.Button_1.clicked.connect(lambda: self.setLineText("1"))
         self.Button_2.clicked.connect(lambda: self.setLineText("2"))
@@ -332,6 +358,8 @@ class Ui_MainWindow(object):
         self.Button_0.clicked.connect(lambda: self.setLineText("0"))
         self.Button_reload.clicked.connect(lambda: self.reloadData())
         self.Button_enter.clicked.connect(lambda: self.enter())
+        self.Button_next.clicked.connect(lambda: self.next_img())
+        self.Button_priview.clicked.connect(lambda: self.priview_img())
         self.Button_del.clicked.connect(lambda: self.lineEdit.setText(self.lineEdit.text()[:-1]if len(self.lineEdit.text()) > 1 and self.lineEdit.text()!="????" else "????"))
 
 import img_rc
@@ -342,6 +370,7 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
+    ui.setupImg()
     ui.actionConnect()
     img=cv2.imread("unknown.jpg")
     ui.qtImshow(img)
