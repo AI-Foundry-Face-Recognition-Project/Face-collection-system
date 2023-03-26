@@ -239,10 +239,10 @@ class Ui_MainWindow(object):
         self.image=[]
         self.pic_label=0
     def setupImg(self):
-        self.image=self.sql_find_face_img()
         self.pic_label=0
         self.pic_maxlabel=0
-    
+        self.reloadData()
+
     def sql_sync(self):
         pass
     def image2string(self,image):
@@ -250,7 +250,7 @@ class Ui_MainWindow(object):
         img_str = base64.b64encode(img_str).decode('utf-8')
         return img_str
     def string2image(self,img_str):
-        img_str = base64.b64decode(img_str[0])
+        img_str = base64.b64decode(img_str)
         img_arr = np.frombuffer(img_str, np.uint8)
         img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
         return img
@@ -259,11 +259,49 @@ class Ui_MainWindow(object):
         result = cursor.fetchall()
         return result#check
     def sql_find_face_img(self):
-        cursor.execute("SELECT face_img FROM face;")
-        result=[self.string2image(element) for element in cursor.fetchall() ]
+        # cursor.execute("SELECT face_img \
+        #                FROM face,ntr,ntr_face_id \
+        #                where ntr.ntr_id=ntr_face_id.ntr_id and ntr_face_id.face_id=face.face_id \
+        #                order by ntr.ntr_id DESC;")
+    
+        cursor.execute("SELECT face_img,face_id FROM face where face_id in (select face_id from (select Distinct face_id,ntr_id from ntr_face_id) as f);")
+        temp=cursor.fetchall()
+        result=[self.string2image(element) for element,_ in temp ]
+        result_num=[num for _,num in temp ]
         self.pic_maxlabel=len(result)-1
         print("max: "+str(self.pic_maxlabel))
-        return result
+        return result,result_num
+    def sql_remove_NTR(self,ntr_id):
+        cursor.execute("DELETE FROM ntr_face_id WHERE ntr_id = "+ntr_id+";")
+        maxdb.commit()
+        cursor.execute("DELETE FROM ntr WHERE ntr_id = "+ntr_id+";")
+        maxdb.commit()
+    def sql_find_ntr_id (self,face_id):
+        cursor.execute("SELECT ntr_id FROM ntr_face_id WHERE face_id = "+face_id+";")
+        re=cursor.fetchall()
+        return re [0][0]
+    def sql_add_people(self,id,ntr_id):
+        exist=self.sql_find_people_id(id)
+        print(exist)
+        if not exist:
+            cursor.execute("INSERT INTO people (people_id) VALUES ('%s')"%(id))
+            maxdb.commit()
+        self.sql_write_people_face_id(id,ntr_id)
+    def sql_write_people_face_id(self,id,ntr_id):
+        result=self.sql_find_allface_by_ntrid(ntr_id)
+        for face_id in result:
+            cursor.execute("INSERT INTO people_face_id (people_id, face_id) VALUES ('%s','%s');"%(id, face_id[0]))
+            maxdb.commit()
+    def sql_find_people_id(self,id):
+        cursor.execute("SELECT people_id FROM people;")
+        results = cursor.fetchall()
+        for result  in results:
+            if id in result[0]:
+                return True
+        return False
+    def sql_find_allface_by_ntrid(self,ntr_id):
+        cursor.execute("SELECT face_id FROM ntr_face_id where ntr_id='"+ntr_id+"';")
+        return cursor.fetchall()
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -311,38 +349,67 @@ class Ui_MainWindow(object):
         self.ImgDisp.resize(size)
     def reloadData(self):
         self.lineEdit.setText("????")
-        self.image=self.sql_find_face_img()
+        self.image,self.image_num=self.sql_find_face_img()
+        self.image.reverse()
+        self.image_num.reverse()
         self.pic_label=0
-        self.qtImshow(self,self.image[self.pic_label])
+        self.qtImshow(self.image[self.pic_label])
     def enter(self):
         check = QMessageBox()
         check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
         reply =check.information(None, '上傳確認', '您好%s\n確定上傳嗎？' % self.lineEdit.text(), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            ##uplode data
-
-            ##uplode data
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle('成功')
-            msgBox.setText('上傳成功')
-            msgBox.setStandardButtons(QMessageBox.Ok)
-            msgBox.button(QMessageBox.Ok).hide()
-            msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
-            msgBox.button(QMessageBox.Ok).animateClick(1000)
-            msgBox.exec_()  
-            self.lineEdit.setText("????")
+            if self.sql_find_ntr_id(self.image_num[self.pic_label])=='0':
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle('你不是乎麻貓')
+                msgBox.setText('你不是乎麻貓\n請正確填寫資料')
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.button(QMessageBox.Ok).hide()
+                msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+                msgBox.button(QMessageBox.Ok).animateClick(1000)
+                msgBox.exec_()  
+                self.lineEdit.setText("????")
+            elif self.lineEdit.text() == "????":
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle('錯誤')
+                msgBox.setText('????先生/小姐\n請正確填寫資料')
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.button(QMessageBox.Ok).hide()
+                msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+                msgBox.button(QMessageBox.Ok).animateClick(1000)
+                msgBox.exec_()  
+                self.lineEdit.setText("????")
+            else:
+                ##upload data
+                #face_id=self.image_num[self.pic_label]
+                ntrid=self.sql_find_ntr_id(self.image_num[self.pic_label])
+                self.sql_add_people(self.lineEdit.text(),ntrid)
+                self.sql_remove_NTR(ntrid) 
+                self.reloadData()
+                ##upload data
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle('成功')
+                msgBox.setText('上傳成功')
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.button(QMessageBox.Ok).hide()
+                msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+                msgBox.button(QMessageBox.Ok).animateClick(1000)
+                msgBox.exec_()  
+                self.lineEdit.setText("????")
 
     def next_img(self):
         print(str(self.pic_label)+"to "+str(self.pic_label+1))
         if self.pic_label+1 <=self.pic_maxlabel:
             self.pic_label+=1
-            self.qtImshow(self,self.image[self.pic_label])
+            self.qtImshow(self.image[self.pic_label])
+            self.lineEdit.setText("????")
         pass
     def priview_img(self):
         print(str(self.pic_label)+"to "+str(self.pic_label-1))
         if self.pic_label>0:
-            self.pic_label+=1
-            self.qtImshow(self,self.image[self.pic_label])
+            self.pic_label-=1
+            self.qtImshow(self.image[self.pic_label])
+            self.lineEdit.setText("????")
         else:
             pass
     def actionConnect(self):
@@ -370,10 +437,10 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
-    ui.setupImg()
-    ui.actionConnect()
     img=cv2.imread("unknown.jpg")
     ui.qtImshow(img)
+    ui.setupImg()
+    ui.actionConnect()
     #MainWindow.showFullScreen()
     MainWindow.show()
     sys.exit(app.exec_())

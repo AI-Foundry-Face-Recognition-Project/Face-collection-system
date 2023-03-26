@@ -50,11 +50,55 @@ records = [
            ('3','3',image3)
            ]
 
-# "insert into face(face_id,origin_img_id,face_img) VALUES (%s,%s,%s);" % image1
-# "insert into face(face_id,origin_img_id,face_img) VALUES (%s,%s,%s);" % image2
-# "insert into face(face_id,origin_img_id,face_img) VALUES (%s,%s,%s);" % image3
-
 cursor.executemany(sqlStuff, records)
 maxdb.commit()
 
+cursor.execute("INSERT INTO ntr (ntr_id) VALUES ('1')")
+cursor.execute("INSERT INTO ntr (ntr_id) VALUES ('2')")
+cursor.execute("INSERT INTO ntr (ntr_id) VALUES ('3')")
+maxdb.commit()
+
+cursor.execute("INSERT INTO ntr_face_id (ntr_id, face_id) VALUES ('1','1')")
+cursor.execute("INSERT INTO ntr_face_id (ntr_id, face_id) VALUES ('2','2')")
+cursor.execute("INSERT INTO ntr_face_id (ntr_id, face_id) VALUES ('2','3')")
+maxdb.commit()
+
+"""
+# 
+def sql_find_last_ntr_id():
+    cursor.execute("SELECT ntr_id FROM ntr order by 'ntr_id' DESC LIMIT 0 , 1;")
+    result = cursor.fetchall()
+    return result#check
+def sql_write_ntr(face_id):
+    ntr_id=sql_find_last_ntr_id()
+    cursor.execute("INSERT INTO ntr (ntr_id) VALUES ('%s')"%face_id)
+    maxdb.commit()
+    sql_write_ntr_face_id(ntr_id, face_id)
+def sql_write_ntr_face_id(ntr_id, face_id):
+    cursor.execute("INSERT INTO ntr_face_id (ntr_id, face_id) VALUES ('%s','%s')"%(ntr_id, face_id))
+    maxdb.commit()
 # %%
+
+def sql_find_people_id(id):
+    cursor.execute("SELECT people_id FROM people;")
+    result = cursor.fetchall()
+    return id in result
+def sql_find_allface_by_ntrid(ntr_id):
+    cursor.execute("SELECT face_id FROM ntr_face_id where ntr_id="+ntr_id+";")
+    return cursor.fetchall()
+
+def sql_write_people(id):
+    if not sql_find_people_id(id):
+        sqlStuff = "INSERT INTO people (people_id) VALUES (%s)"
+        records = [(id)]
+        cursor.executemany(sqlStuff, records)
+        maxdb.commit()
+    sql_write_people_face_id(id,ntr_id)
+def sql_write_people_face_id(id,ntr_id):
+    sqlStuff = "INSERT INTO people_face_id (people_id, face_id) VALUES (%s,%s)"
+    result=sql_find_allface_by_ntrid(ntr_id)
+    for face_id in result:
+        records = [(id, face_id)]
+        cursor.executemany(sqlStuff, records)
+        maxdb.commit()
+        """
