@@ -33,12 +33,12 @@ import mysql.connector
 import cv2
 import base64
 import numpy as np
-# import password as pw
+import sqlinfo as sql
 maxdb = mysql.connector.connect(
-    host = "127.0.0.1",
-    user = "root",
-    password = "!A1078d2906e2a",
-    database = "proj",
+    host = sql.host,
+    user = sql.user,
+    password = sql.password,
+    database = sql.database,
     )
 cursor=maxdb.cursor()
 

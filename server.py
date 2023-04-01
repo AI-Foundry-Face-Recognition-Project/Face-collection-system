@@ -8,6 +8,7 @@ import base64
 from helper import read_pkl_model, start_up_init, encode_image
 import face_embedding
 import face_detector
+import sqlinfo as sql
 # In[]:
 is_real_time=False
 VIDEO_PATH='b1_cam1_2.avi'
@@ -25,10 +26,10 @@ NPY_PATH='face_vector.npy'
 import mysql.connector
 # import password as pw
 maxdb = mysql.connector.connect(
-    host = "127.0.0.1",
-    user = "root",
-    password = "Iloveyou",
-    database = "topic",
+    host = sql.host,
+    user = sql.user,
+    password = sql.password,
+    database = sql.database,
     )
 cursor=maxdb.cursor()
 
