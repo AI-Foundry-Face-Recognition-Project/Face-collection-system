@@ -255,7 +255,7 @@ class Ui_MainWindow(object):
         img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
         return img
     def sql_find_last_img_id():
-        cursor.execute("SELECT origin_img_id FROM origin_img order by 'origin_img_id' DESC LIMIT 0 , 1;")
+        cursor.execute("SELECT origin_img_id,CAST(origin_img_id AS UNSIGNED) as origin_img_id_int FROM origin_img order by origin_img_id_int DESC LIMIT 0 , 1;")
         result = cursor.fetchall()
         return result#check
     def sql_find_face_img(self):
