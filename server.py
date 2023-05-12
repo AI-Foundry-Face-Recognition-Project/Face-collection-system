@@ -12,9 +12,11 @@ import face_detector
 import sqlinfo as sql
 # In[]:
 is_real_time=False
-VIDEO_PATH='B1_Cam1_1.mp4'
+#VIDEO_PATH='B1_Cam1_1.mp4'
+VIDEO_PATH='rtsp://aifoundry:Coieeb1(@140.134.208.212:554/chID=0&streamType=main'
 SAVE_VIDEO=False
 PROBA_THRESHOLD=0.5
+
 VIDEO_OUT_PATH='output_2.avi'
 VIDEO_RESOLUTION=(1920,1080)
 VIDEO_FRAME=15.0
