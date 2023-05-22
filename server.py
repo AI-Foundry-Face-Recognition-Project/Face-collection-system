@@ -143,7 +143,7 @@ def detect_frame(frame):
             img,box=imgs_['img'],imgs_['box']
             embedding=get_embedding(img)
             re = find_topK(embedding)
-            topid,_,proba='','',''
+            topid,_,proba=None,None,None
             if re=="first picture":
                 ntr_id=sql_find_last_group_id()
                 proba=-1
@@ -165,7 +165,6 @@ def detect_frame(frame):
                     embedding=np.array([embedding])
                 vector = np.concatenate((vector, embedding), axis=0)
             face_img.append(img)
-            id.append(topid)
             origin_img_id.append(int(sql_find_last_origin_img_id()))
             if proba > PROBA_THRESHOLD:
                 id.append(topid)
