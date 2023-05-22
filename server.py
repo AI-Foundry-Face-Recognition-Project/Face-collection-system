@@ -1,16 +1,20 @@
+# In[]: import
 import cv2
 import os
+import sys
 import time
 import numpy as nps
 import numpy as np
 import torch
 import base64
+from datetime import datetime
 # import cupy as np
 from helper import read_pkl_model, start_up_init, encode_image
 import face_embedding
 import face_detector
 import sqlinfo as sql
-# In[]:
+import threading
+# In[]: args
 is_real_time=False
 #VIDEO_PATH='B1_Cam1_1.mp4'
 VIDEO_PATH='rtsp://aifoundry:Coieeb1(@140.134.208.212:554/chID=0&streamType=main'
@@ -20,14 +24,13 @@ PROBA_THRESHOLD=0.5
 VIDEO_OUT_PATH='output_2.avi'
 VIDEO_RESOLUTION=(1920,1080)
 VIDEO_FRAME=15.0
-SHOW_VIDEO=True
+SHOW_VIDEO=False
 USE_DEFAULT_FACE_DATA=False # if True, use face_vector.npy, else use real time face data
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 NPY_PATH='face_vector.npy'
 RETINA_THRESHOLD=.85
-# In[]:
+# In[]: inint
 import mysql.connector
-# import password as pw
 maxdb = mysql.connector.connect(
     host = sql.host,
     user = sql.user,
@@ -49,6 +52,7 @@ vector=torch.tensor(vector)
 detector = face_detector.DetectorModel(args)
 embedding = face_embedding.EmbeddingModel(args)
 get_embedding=lambda img: embedding.get_one_feature(img)
+# In[]: function
 def image2string(image):
     img_str = cv2.imencode('.jpg', image)[1].tostring()
     img_str = base64.b64encode(img_str).decode('utf-8')
@@ -79,26 +83,23 @@ def sql_write_origin_img(frame):
     cursor.execute("insert into origin_img(origin_img_id,img,img_time) VALUES ('%s','%s','%s');"%(str(last_num),frame_str,time_now))
     maxdb.commit()
 def sqlwrite_face_img(img,origin_img_id):
-    last_num=str(sql_find_last_face_img_id())
+    last_num=str(sql_find_last_face_img_id()+1)
     img_str=image2string(img)
     cursor.execute("insert into face(face_id,origin_img_id,face_img) VALUES ('%s','%s','%s');"%(last_num,origin_img_id,img_str))
     maxdb.commit()
     return last_num
 def sql_write_NTR(group_id,face_id): # NTR: need to recognize
-    cursor.execute("SELECT NTR_id from NTR WHERE NTR_id = %s;"%(group_id))
+    cursor.execute("SELECT NTR_id from NTR WHERE NTR_id = '%s';"%(group_id))
     result = cursor.fetchall()
+    print('@@',result)
     if result == []:
         cursor.execute("insert into NTR(NTR_id) VALUES ('%s');"%(group_id))
         maxdb.commit()
+    print('ww ',group_id,face_id)
     sql_write_ntr_face_id(group_id,face_id)
 def sql_write_ntr_face_id(group_id,face_id):
-    cursor.execute("INSERT INTO ntr_face_id (ntr_id, face_id) VALUES ('%s','%s')"%(group_id,face_id))
+    cursor.execute("INSERT INTO NTR_face_id (NTR_id, face_id) VALUES ('%s','%s')"%(group_id,face_id))
     maxdb.commit()
-# def sql_write_face(vector,img,group_id,origin_img_id):
-#     for i,g_id in enumerate(group_id):
-#         o_id=origin_img_id[i]
-#         face_id=sqlwrite_face_img(img[i],origin_img_id)
-#         sql_write_NTR(group_id[i],face_id)
 def caculate_distmat(qf, gf):
     m, n = qf.shape[0], gf.shape[0]
     distmat = torch.pow(qf, 2).sum(dim=1, keepdim=True).expand(m, n) + \
@@ -112,7 +113,7 @@ def find_topK(embedding):
     if isinstance(vector, torch.Tensor):
         vector_=vector
     else:
-        vector_=torch.tensor([vector])
+        vector_=torch.tensor(vector)
     if vector_.shape[0]==0:
         return "first picture"
     else:
@@ -136,7 +137,8 @@ def detect_frame(frame):
     imgs=retina(frame)
     embedding_img=[]
     sql_write_origin_img(frame)
-    if not(imgs is None):
+    if not((len(imgs)==0)):
+        print("@@@@@@@@@@@@@@@@@@@@@")
         for imgs_ in imgs:
             img,box=imgs_['img'],imgs_['box']
             embedding=get_embedding(img)
@@ -153,8 +155,10 @@ def detect_frame(frame):
                     embedding=torch.tensor([embedding])
                 vector=torch.cat((vector,embedding),0)
             elif isinstance(vector, list):
-                if not isinstance(embedding, list):
-                    embedding=[embedding]
+                if isinstance(embedding, torch.Tensor):
+                   embedding=embedding.tolist()
+                elif isinstance(embedding,np.ndarray):
+                    embedding=embedding.tolist()
                 vector.append(embedding)
             elif isinstance(vector, np.ndarray):
                 if not isinstance(embedding, np.ndarray):
@@ -174,37 +178,92 @@ def detect_frame(frame):
             embedding_img.append(embedding_)
             
     else:
-        print("@@")
+        print("===============================")
         for x,y,z,w in zip(vector,face_img,id,origin_img_id):
-            print("z")
+            print(z)
             sql_write_NTR(z,sqlwrite_face_img(y,w))
         vector=[]
         face_img=[]
         id=[]
         origin_img_id=[]
     return embedding_img
-if __name__ == "__main__":
+frame=None
+ret=None
+thread_switch=False
+def readimg():
+    global frame
+    global ret
+    global thread_switch
     cap=cv2.VideoCapture(VIDEO_PATH)
     VIDEO_FRAME=cap.get(cv2.CAP_PROP_FRAME_COUNT) if is_real_time else None
-    out = cv2.VideoWriter(VIDEO_OUT_PATH, fourcc, VIDEO_FRAME, VIDEO_RESOLUTION) if SAVE_VIDEO else None
-    while True:
-        ret, frame = cap.read()
-        frame = frame[0:1080, 200:1500]
-        start_time=time.time()
+    if SAVE_VIDEO:
+        out = cv2.VideoWriter(VIDEO_OUT_PATH, fourcc, VIDEO_FRAME, VIDEO_RESOLUTION) 
+    while thread_switch:
+        ret, frame = cap.read() 
         if not ret:
             break
-        dectcts_re=detect_frame(frame)
-        for dectcts in dectcts_re:
-            box,topid=dectcts['box'],dectcts['topid']
-            cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
-        cv2.imshow('frame', frame)if SHOW_VIDEO else None
-        out.write(frame) if SAVE_VIDEO else None
+        if SAVE_VIDEO:
+            out.write(frame)
         if is_real_time:
             #for i in range(int((time.time()-start_time)*VIDEO_FRAME)):
             #    cap.read()
             pass
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
     cap.release()
-    out.release() if SAVE_VIDEO else None
+    if SAVE_VIDEO:
+        out.release()
+
+
+if __name__ == "__main__":
+    t = threading.Thread(target = readimg)
+    thread_switch=True
+    t.daemon=True
+    t.start()
+    while True:
+        if(ret):
+            start_time=time.time()
+            frame = frame[0:1080, 200:1500]
+            dectcts_re=detect_frame(frame)
+            for dectcts in dectcts_re:
+                box,topid=dectcts['box'],dectcts['topid']
+                cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+            #print(datetime.now())
+            if SHOW_VIDEO:
+                cv2.imshow('frame', frame)
+                if cv2.waitKey(0) & 0xFF == ord('q'):
+                    thread_switch=False
+                    break
+    t.join()
     cv2.destroyAllWindows()
+
+# if __name__ == "__main__":
+#     cap=cv2.VideoCapture(VIDEO_PATH)
+#     VIDEO_FRAME=cap.get(cv2.CAP_PROP_FRAME_COUNT) if is_real_time else None
+#     out=''
+#     if SAVE_VIDEO:
+#         out = cv2.VideoWriter(VIDEO_OUT_PATH, fourcc, VIDEO_FRAME, VIDEO_RESOLUTION)  
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         start_time=time.time()
+#         frame = frame[0:1080, 200:1500]
+#         dectcts_re=detect_frame(frame)
+#         for dectcts in dectcts_re:
+#             box,topid=dectcts['box'],dectcts['topid']
+#             cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+#         cv2.imshow('frame', frame)if SHOW_VIDEO else None
+#         if SAVE_VIDEO:
+#             out.write(frame)
+#         if is_real_time:
+#             #for i in range(int((time.time()-start_time)*VIDEO_FRAME)):
+#             #    cap.read()
+#             pass
+#         print(datetime.now())
+#         if cv2.waitKey(0) & 0xFF == ord('q'):
+#             break
+#     cap.release()
+#     if SAVE_VIDEO:
+#         out.release()
+#     cv2.destroyAllWindows()
+#th1 cv2 read image
+#th2 detect face @@main
