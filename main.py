@@ -478,7 +478,7 @@ if __name__ == "__main__":
     ui.qtImshow(img)
     ui.setupImg()
     ui.actionConnect()
-    #MainWindow.showFullScreen()
-    MainWindow.show()
+    MainWindow.showFullScreen()
+    #MainWindow.show()
     sys.exit(app.exec_())
 
