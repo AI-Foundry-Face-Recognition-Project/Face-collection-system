@@ -46,7 +46,9 @@ cursor=maxdb.cursor()
 
 class Ui_MainWindow(object):
     def __init__(self):
-        super().__init__()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.user_idle)
+        self.RELOAD_TIME=60*1000 #update per minute
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(480, 320)
@@ -242,13 +244,22 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.image=[]
         self.pic_label=0
+        self.user_idle()
     def mousePressEvent(self,event):
         self.timer.stop()
-        self.timer.start(5000)
+        self.timer.start(self.RELOAD_TIME)
     def user_idle(self):
-        print('user idle reloading')
+        print('user idle reloading data')
         self.timer.stop()
-        self.timer.start(5000)
+        self.timer.start(self.RELOAD_TIME)
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle('connecting to server')
+        msgBox.setText('更新資料中')
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.button(QMessageBox.Ok).hide()
+        msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+        msgBox.button(QMessageBox.Ok).animateClick(1000)
+        msgBox.exec_()  
         self.reloadData()
     def setupImg(self):
         self.pic_label=0
@@ -285,12 +296,10 @@ class Ui_MainWindow(object):
         result_num=[]
         for id in sorted(list(set(result_ntr_id))):
             tmp=[[img[i],num[i]] for i,j in enumerate(result_ntr_id) if j==id]
-            print('============',id)
             a=tmp[len(tmp)//2]
             result.append(a[0])
             result_num.append(a[1])
         self.pic_maxlabel=len(result)-1
-        print("max: "+str(self.pic_maxlabel))
         return result,result_num
     def sql_remove_NTR(self,ntr_id):
         cursor.execute("DELETE FROM NTR_face_id WHERE NTR_id = "+ntr_id+";")
@@ -303,7 +312,6 @@ class Ui_MainWindow(object):
         return re [0][0]
     def sql_add_people(self,id,ntr_id):
         exist=self.sql_find_people_id(id)
-        print(exist)
         if not exist:
             cursor.execute("INSERT INTO people (people_id) VALUES ('%s')"%(id))
             maxdb.commit()
@@ -382,7 +390,7 @@ class Ui_MainWindow(object):
         self.image_num.reverse()
         self.pic_label=0
         self.qtImshow(self.image[self.pic_label])
-        print("stop reload")
+        print("end reload")
     def enter(self):
         check = QMessageBox()
         check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
@@ -470,7 +478,7 @@ if __name__ == "__main__":
     ui.qtImshow(img)
     ui.setupImg()
     ui.actionConnect()
-    MainWindow.showFullScreen()
-    #MainWindow.show()
+    #MainWindow.showFullScreen()
+    MainWindow.show()
     sys.exit(app.exec_())
 
