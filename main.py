@@ -29,11 +29,13 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (QApplication, QMessageBox)
 from PyQt5.QtGui import *
+from PyQt5.QtCore import QTimer
 import mysql.connector
 import cv2
 import base64
 import numpy as np
 import sqlinfo as sql
+import time
 maxdb = mysql.connector.connect(
     host = sql.host,
     user = sql.user,
@@ -43,6 +45,8 @@ maxdb = mysql.connector.connect(
 cursor=maxdb.cursor()
 
 class Ui_MainWindow(object):
+    def __init__(self):
+        super().__init__()
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(480, 320)
@@ -238,6 +242,14 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.image=[]
         self.pic_label=0
+    def mousePressEvent(self,event):
+        self.timer.stop()
+        self.timer.start(5000)
+    def user_idle(self):
+        print('user idle reloading')
+        self.timer.stop()
+        self.timer.start(5000)
+        self.reloadData()
     def setupImg(self):
         self.pic_label=0
         self.pic_maxlabel=0
@@ -264,20 +276,29 @@ class Ui_MainWindow(object):
         #                where ntr.ntr_id=ntr_face_id.ntr_id and ntr_face_id.face_id=face.face_id \
         #                order by ntr.ntr_id DESC;")
     
-        cursor.execute("SELECT face_img,face_id FROM face where face_id in (select face_id from (select Distinct face_id,ntr_id from ntr_face_id) as f);")
+        cursor.execute("SELECT f.face_img,f.face_id,n.NTR_id FROM face as f,NTR_face_id as n where f.face_id in (select face_id from (select Distinct face_id,NTR_id from NTR_face_id) as f) and f.face_id=n.face_id order by n.NTR_id ASC;")
         temp=cursor.fetchall()
-        result=[self.string2image(element) for element,_ in temp ]
-        result_num=[num for _,num in temp ]
+        img=[self.string2image(element) for element,_,_ in temp]
+        num=[num for _,num,_ in temp]
+        result_ntr_id=[ids for _,_,ids in temp]
+        result=[]
+        result_num=[]
+        for id in sorted(list(set(result_ntr_id))):
+            tmp=[[img[i],num[i]] for i,j in enumerate(result_ntr_id) if j==id]
+            print('============',id)
+            a=tmp[len(tmp)//2]
+            result.append(a[0])
+            result_num.append(a[1])
         self.pic_maxlabel=len(result)-1
         print("max: "+str(self.pic_maxlabel))
         return result,result_num
     def sql_remove_NTR(self,ntr_id):
-        cursor.execute("DELETE FROM ntr_face_id WHERE ntr_id = "+ntr_id+";")
+        cursor.execute("DELETE FROM NTR_face_id WHERE NTR_id = "+ntr_id+";")
         maxdb.commit()
-        cursor.execute("DELETE FROM ntr WHERE ntr_id = "+ntr_id+";")
+        cursor.execute("DELETE FROM NTR WHERE NTR_id = "+ntr_id+";")
         maxdb.commit()
     def sql_find_ntr_id (self,face_id):
-        cursor.execute("SELECT ntr_id FROM ntr_face_id WHERE face_id = "+face_id+";")
+        cursor.execute("SELECT NTR_id FROM NTR_face_id WHERE face_id = "+face_id+";")
         re=cursor.fetchall()
         return re [0][0]
     def sql_add_people(self,id,ntr_id):
@@ -300,7 +321,7 @@ class Ui_MainWindow(object):
                 return True
         return False
     def sql_find_allface_by_ntrid(self,ntr_id):
-        cursor.execute("SELECT face_id FROM ntr_face_id where ntr_id='"+ntr_id+"';")
+        cursor.execute("SELECT face_id FROM NTR_face_id where NTR_id='"+ntr_id+"';")
         return cursor.fetchall()
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -348,12 +369,20 @@ class Ui_MainWindow(object):
         size = QtImg.size()
         self.ImgDisp.resize(size)
     def reloadData(self):
+        print("start reload")
+        time_tmp = time.localtime(time.time())
+        time_now=str(time_tmp.tm_year)+"-"+str(time_tmp.tm_mon)+"-"+str(time_tmp.tm_mday)+" "+str(time_tmp.tm_hour)+":"+str(time_tmp.tm_min)+":"+str(time_tmp.tm_sec)
+        cursor.execute("insert into reload(img_time) VALUES ('%s');"%(time_now))
+        maxdb.commit()
         self.lineEdit.setText("????")
+        self.image=[]
+        self.image_num=0
         self.image,self.image_num=self.sql_find_face_img()
         self.image.reverse()
         self.image_num.reverse()
         self.pic_label=0
         self.qtImshow(self.image[self.pic_label])
+        print("stop reload")
     def enter(self):
         check = QMessageBox()
         check.setWindowFlag(QtCore.Qt.FramelessWindowHint)
@@ -441,7 +470,7 @@ if __name__ == "__main__":
     ui.qtImshow(img)
     ui.setupImg()
     ui.actionConnect()
-    #MainWindow.showFullScreen()
-    MainWindow.show()
+    MainWindow.showFullScreen()
+    #MainWindow.show()
     sys.exit(app.exec_())
 

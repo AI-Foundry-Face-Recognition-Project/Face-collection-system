@@ -30,3 +30,7 @@ CREATE TABLE NTR_face_id(
     FOREIGN KEY(NTR_id) REFERENCES NTR(NTR_id),
     FOREIGN KEY(face_id) REFERENCES face(face_id)  
 );
+
+CREATE TABLE reload (
+  img_time DATETIME COLLATE utf8_unicode_ci NOT NULL
+);
