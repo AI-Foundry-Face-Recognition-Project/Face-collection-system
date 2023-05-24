@@ -246,26 +246,18 @@ class Ui_MainWindow(object):
         self.pic_label=0
         self.user_idle()
     def mousePressEvent(self,event):
+        print('mouse press')
         self.timer.stop()
         self.timer.start(self.RELOAD_TIME)
     def user_idle(self):
         print('user idle reloading data')
         self.timer.stop()
         self.timer.start(self.RELOAD_TIME)
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle('connecting to server')
-        msgBox.setText('更新資料中')
-        msgBox.setStandardButtons(QMessageBox.Ok)
-        msgBox.button(QMessageBox.Ok).hide()
-        msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
-        msgBox.button(QMessageBox.Ok).animateClick(1000)
-        msgBox.exec_()  
         self.reloadData()
     def setupImg(self):
         self.pic_label=0
         self.pic_maxlabel=0
         self.reloadData()
-
     def sql_sync(self):
         pass
     def image2string(self,image):
@@ -356,10 +348,6 @@ class Ui_MainWindow(object):
             self.lineEdit.setText(text)
         else:
             self.lineEdit.setText(self.lineEdit.text() + text)
-    #def cvImgtoQtImg(self,cvImg): #定义opencv图像转PyQt图像的函数
-    #    QtImgBuf = cv2.cvtColor(cvImg,  cv2.COLOR_BGR2BGRA)
-    #    QtImg = QtGui.QImage(QtImgBuf.data, QtImgBuf.shape[1], QtImgBuf.shape[0], QtGui.QImage.Format_RGB32)
-    #    return QtImg
     def cvimg_to_qtimg(self,cvimg):
         height, width, depth = cvimg.shape
         cvimg = cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB)
@@ -382,6 +370,14 @@ class Ui_MainWindow(object):
         time_now=str(time_tmp.tm_year)+"-"+str(time_tmp.tm_mon)+"-"+str(time_tmp.tm_mday)+" "+str(time_tmp.tm_hour)+":"+str(time_tmp.tm_min)+":"+str(time_tmp.tm_sec)
         cursor.execute("insert into reload(img_time) VALUES ('%s');"%(time_now))
         maxdb.commit()
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle('connecting to server')
+        msgBox.setText('更新資料中')
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.button(QMessageBox.Ok).hide()
+        msgBox.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+        msgBox.button(QMessageBox.Ok).animateClick(1000)
+        msgBox.exec_()  
         self.lineEdit.setText("????")
         self.image=[]
         self.image_num=0
@@ -433,7 +429,6 @@ class Ui_MainWindow(object):
                 msgBox.button(QMessageBox.Ok).animateClick(1000)
                 msgBox.exec_()  
                 self.lineEdit.setText("????")
-
     def next_img(self):
         print(str(self.pic_label)+"to "+str(self.pic_label+1))
         if self.pic_label+1 <=self.pic_maxlabel:
@@ -474,6 +469,7 @@ if __name__ == "__main__":
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
+    MainWindow.mousePressEvent=ui.mousePressEvent
     img=cv2.imread("unknown.jpg")
     ui.qtImshow(img)
     ui.setupImg()
