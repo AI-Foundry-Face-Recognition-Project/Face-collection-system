@@ -136,8 +136,8 @@ def detect_frame(frame):
     global ntr_id
     imgs=retina(frame)
     embedding_img=[]
-    sql_write_origin_img(frame)
     if not((len(imgs)==0)):
+        sql_write_origin_img(frame)
         print("@@@@@@@@@@@@@@@@@@@@@")
         for imgs_ in imgs:
             img,box=imgs_['img'],imgs_['box']
