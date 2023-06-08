@@ -222,9 +222,9 @@ if __name__ == "__main__":
             start_time=time.time()
             frame = frame[0:1080, 200:1500]
             dectcts_re=detect_frame(frame)
-            for dectcts in dectcts_re:
-                box,topid=dectcts['box'],dectcts['topid']
-                cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+            #for dectcts in dectcts_re:
+            #    box,topid=dectcts['box'],dectcts['topid']
+            #    cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             #print(datetime.now())
             if SHOW_VIDEO:
                 cv2.imshow('frame', frame)
