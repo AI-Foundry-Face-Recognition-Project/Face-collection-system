@@ -198,15 +198,18 @@ def readimg():
     if SAVE_VIDEO:
         out = cv2.VideoWriter(VIDEO_OUT_PATH, fourcc, VIDEO_FRAME, VIDEO_RESOLUTION) 
     while thread_switch:
-        ret, frame = cap.read() 
-        if not ret:
-            break
-        if SAVE_VIDEO:
-            out.write(frame)
-        if is_real_time:
-            #for i in range(int((time.time()-start_time)*VIDEO_FRAME)):
-            #    cap.read()
-            pass
+        try:
+            ret, frame = cap.read() 
+            if not ret:
+                break
+            if SAVE_VIDEO:
+                out.write(frame)
+            if is_real_time:
+                #for i in range(int((time.time()-start_time)*VIDEO_FRAME)):
+                #    cap.read()
+                pass
+        except Exception:
+            print(sys.exc_info()[2])
     cap.release()
     if SAVE_VIDEO:
         out.release()
