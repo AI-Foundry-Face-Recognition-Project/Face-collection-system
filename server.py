@@ -189,7 +189,7 @@ def detect_frame(frame):
 frame=None
 ret=None
 thread_switch=False
-def readimg():
+def reading():
     global frame
     global ret
     global thread_switch
@@ -210,16 +210,26 @@ def readimg():
                 pass
         except Exception:
             print(sys.exc_info()[2])
+            thread_switch = False
+            restart_read_thread()
+
     cap.release()
     if SAVE_VIDEO:
         out.release()
 
-
-if __name__ == "__main__":
-    t = threading.Thread(target = readimg)
+def restart_read_thread():
+    global thread_switch
+    t = threading.Thread(target=reading)
     thread_switch=True
     t.daemon=True
     t.start()
+
+if __name__ == "__main__":
+    t = threading.Thread(target = reading)
+    thread_switch=True
+    t.daemon=True
+    t.start()
+
     while True:
         if(ret):
             start_time=time.time()
