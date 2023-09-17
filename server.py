@@ -223,13 +223,17 @@ def restart_read_thread():
     thread_switch=True
     t.daemon=True
     t.start()
-
+def sqlconnect():
+    cursor.execute("select 1;")
+    result = cursor.fetchall()
 if __name__ == "__main__":
     t = threading.Thread(target = reading)
     thread_switch=True
     t.daemon=True
     t.start()
-
+    mysql_connectthread= threading.Timer(300, sqlconnect)
+    mysql_connectthread.daemon=True
+    mysql_connectthread.start()
     while True:
         if(ret):
             start_time=time.time()
