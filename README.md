@@ -16,6 +16,6 @@ git clone https://github.com/AI-Foundry-Face-Recognition-Project/Face-collection
 ### 安裝所需的套件
 
 ## 如何運行 Face-collection-system
-1.更正sqlinfo.py，將資料庫資訊填入
-2.執行server.py，開始擷取臉部信息
-3.在樹梅派上執行main.py
+1. 更正sqlinfo.py，將資料庫資訊填入
+2. 執行server.py，開始擷取臉部信息
+3. 在樹梅派上執行main.py
